@@ -25,12 +25,14 @@ def get_weather(place_lat, place_lon):
     return requests.get(URL, params=params)
 
 
-response = get_geodata('london')
+response = get_geodata('Гомель')
 if response.status_code == 200:
-    for city in response.json().keys():
-        print("{} ({}:{})".format(city["local_names"]["ru"], city["lat"], city["lon"]))
+    for city in response.json():
+        print(city['local_names']['ru'], city['lat'], ":", city['lon'], end=', ')
 
         city_weather = get_weather(city["lat"], city["lon"])
+        print("Температура:", city_weather.json().get('main').get('temp'), end=', ')
+        print(city_weather.json().get('weather')[0].get('description'))
 else:
     print("Requests error (weather):", response.status_code)
     print(response.text)

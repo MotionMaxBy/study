@@ -3,41 +3,34 @@ import time
 from config import API_KEY
 
 
-api_key = str(API_KEY)
+def get_geodata(city):
+    URL = "http://api.openweathermap.org/geo/1.0/direct"
+    params = {
+        "q": city,
+        "limit": 1,
+        "appid": str(API_KEY)
+    }
+    return requests.get(URL, params=params)
 
-URL = "http://api.openweathermap.org/geo/1.0/direct"
 
-params = {
-    "q": "Гомель",
-    "limit": 1,
-    "appid": api_key
-}
+def get_weather(place_lat, place_lon):
+    URL = "https://api.openweathermap.org/data/2.5/weather"
+    params = {
+        "lat": place_lat,
+        "lon": place_lon,
+        "appid": str(API_KEY),
+        "units": "metric",
+        "lang": "ru",
+    }
+    return requests.get(URL, params=params)
 
 
-response = requests.get(URL, params=params)
+response = get_geodata('london')
 if response.status_code == 200:
-    for place in response.json():
-        # print(place)
-        print("{} ({}:{})".format(place["local_names"]["ru"], place["lat"], place["lon"]))
+    for city in response.json().keys():
+        print("{} ({}:{})".format(city["local_names"]["ru"], city["lat"], city["lon"]))
 
-        URL = "https://api.openweathermap.org/data/2.5/weather"
-
-        params = {
-            "lat": place["lat"],
-            "lon": place["lon"],
-            "appid": api_key,
-            "units": "metric",
-            "lang": "ru",
-        }
-
-        time.sleep(1.2)
-        response = requests.get(URL, params=params)
-        if response.status_code == 200:
-            for key in response.json().keys():
-                print(f"{key}:", response.json()[key])
-        else:
-            print("Requests error (weather):", response.status_code)
-            print(response.text)
+        city_weather = get_weather(city["lat"], city["lon"])
 else:
-    print("Request error:", response.status_code)
-
+    print("Requests error (weather):", response.status_code)
+    print(response.text)

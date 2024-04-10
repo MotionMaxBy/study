@@ -1,18 +1,9 @@
 import requests
 import time
+from config import API_KEY
 
 
-def read_file(file_path: str):
-    try:
-        with open(file_path, "r") as f:
-            res = f.read().strip()
-    except Exception as e:
-        print(e)
-        return None
-    return res
-
-
-api_key = read_file("api_key.txt")
+api_key = str(API_KEY)
 
 URL = "http://api.openweathermap.org/geo/1.0/direct"
 

@@ -28,9 +28,6 @@ class ReaderYAML:
             self.__errors = e
         self.__errors = None
 
-    def remove_to(self, file_path):
-        pass
-
     @property
     def text(self):
         return self.__text
@@ -43,10 +40,6 @@ class ReaderYAML:
     @property
     def path(self):
         return self.__file_path
-
-    @path.setter
-    def path(self, file_path):
-        self.__file_path = file_path
 
     @property
     def is_empty(self):

@@ -1,14 +1,12 @@
 import requests
-import json
-import time
 from config import API_KEY
+from readers import ReaderYAML
 
 
 class GeoPosition:
     name: str
     lon: str
     lat: str
-    local_names: list
     main_info: dict
     weather: list
     status: int
@@ -16,8 +14,14 @@ class GeoPosition:
     geodata_url = "http://api.openweathermap.org/geo/1.0/direct"
     weather_url = "https://api.openweathermap.org/data/2.5/weather"
 
-    def __init__(self, name):
+    def __init__(self, name, lon="", lat=""):
         self.name = name
+        self.lon = lon
+        self.lat = lat
+        if not self.lon or not self.lat:
+            self.get_geodata()
+        else:
+            self.status = 200
 
     def get_geodata(self):
         params = {
@@ -27,10 +31,9 @@ class GeoPosition:
         }
         api_response = requests.get(self.geodata_url, params=params)
         if api_response.status_code == 200:
-            for place in api_response.json():
-                self.local_names = place['local_names']
-                self.lat = place['lat']
-                self.lon = place['lon']
+            for item in api_response.json():
+                self.lat = item['lat']
+                self.lon = item['lon']
         self.status = api_response.status_code
         self.response = api_response.text
 
@@ -38,16 +41,15 @@ class GeoPosition:
         return f"{self.name} (lon: {self.lon} lat: {self.lat} )"
 
     @property
-    def json(self):
-        return json.dumps({self.name: {"lon": self.lon, "lat": self.lat, "local_names": self.local_names}})
+    def obj_data(self):
+        return dict(zip(["name", "lat", "lon", "status"], [self.name, self.lat, self.lon, self.status]))
 
-    @json.setter
-    def json(self, json_dict):
-        for key, value in json_dict.values():
-            self.name = key
-            self.lat = value.get("lat")
-            self.lon = value.get("lon")
-            self.local_names = value.get("local_names")
+    @obj_data.setter
+    def obj_data(self, obj_dict: dict):
+        if isinstance(obj_dict, dict):
+            self.lon = obj_dict.get("lon")
+            self.lat = obj_dict.get("lat")
+            self.status = obj_dict.get("status")
 
     def get_weather(self):
         params = {
@@ -63,13 +65,27 @@ class GeoPosition:
             self.weather = api_weather_response.json().get('weather')
 
 
-city = GeoPosition('Гомель')
-city.get_geodata()
+reader = ReaderYAML("cities.config")
+cities = reader.text
+cities_obj = []
 
-if city.status == 200:
-    city.get_weather()
-    print(city.name, "температура:", city.main_info.get('temp'), end=', ')
-    print(city.weather[0].get('description'))
-else:
-    print("Requests error (weather):", city.status)
-    print(city.response)
+for i in range(len(cities)):
+    if isinstance(cities[i], str):
+        new_city = GeoPosition(cities[i])
+        cities_obj.append(new_city)
+        cities[i] = new_city.obj_data
+    elif isinstance(cities[i], dict):
+        cities_obj.append(GeoPosition(cities[i].get("name"), lon=cities[i].get("lon"), lat=cities[i].get("lat")))
+    else:
+        print(type(cities[i]), " : ", cities[i])
+
+    reader.text = cities
+
+for city in cities_obj:
+    if city.status == 200:
+        city.get_weather()
+        print(city.name, "температура:", city.main_info.get('temp'), end=', ')
+        print(city.weather[0].get('description'))
+    else:
+        print("Requests error (weather):", city.status)
+        print(city.response)
